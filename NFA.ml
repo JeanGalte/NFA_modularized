@@ -140,9 +140,7 @@ struct
 		Q.for_all (fun elt -> Q.mem elt et) d &&
 		Q.for_all (fun elt -> Q.mem elt et) f &&
 		T.for_all 
-			(fun elt ->
-			match elt with
-				| (j,o,h) -> Q.mem j et && Q.mem h et && A.mem o m)
+			(fun (j,o,h) -> Q.mem j et && Q.mem h et && A.mem o m)
 			t 
 
 	let is_auto_from_aut (a : aut) : bool =
@@ -163,27 +161,19 @@ struct
 					T.union 
 				 			( 
 				 				T.map 
-				 					(fun elt -> 
-				 					match elt with
-				 					| (j,o,h) -> (Q.d,A.e,j)
-				 					)
+				 					(fun elt (j,_,_) -> (Q.d,A.e,j))
 				 					(T.filter 
-				 						(fun elt ->
-				 						match elt with
-				 						| (j,o,h) -> Q.est_debut j)
-				 					a.trans)
+				 						(fun (j,_,_) -> Q.est_debut j)
+				 					a.trans
+				 					)
 				 			) 
 				 			( 
 				 				T.map 
-				 					(fun elt -> 
-				 					match elt with
-				 					| (j,o,h) -> (h, A.e, Q.f)
-				 					)
+				 					(fun (_,_,h) -> (h, A.e, Q.f))
 				 					(T.filter 
-				 						(fun elt ->
-				 						match elt with
-				 						| (j,o,h) -> Q.est_fin h)
-				 						a.trans)
+				 						(fun (_,_,h) -> Q.est_fin h)
+				 						a.trans
+				 					)
 				 			)
 				 	) 
 				a.trans
@@ -202,14 +192,10 @@ struct
 			match l with
 			| x :: xs -> 
 				T.fold 	
-					(fun elt b -> 
-					match elt with
-					| (_,_,h) -> est_chemin a xs h q2  || b
+					(fun (_,_,h) -> est_chemin a xs h q2  || b
 					)
 					(T.filter 		
-						(fun elt ->
-					 		match elt with
-					 		| (j,o,h) -> j = q1 && o = x
+						(fun (j,o,h) -> j = q1 && o = x
 					 	)
 					 	a.trans)
 					false
