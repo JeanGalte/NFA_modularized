@@ -107,6 +107,7 @@ sig
 	val is_auto_from_aut : aut -> bool
 	val is_auto_from_lists : a list -> q list -> q list -> q list -> (q * a * q) list -> bool  
 	val debuts_fins_uniques : aut -> aut 
+	val est_usuel : aut -> bool
 end
 
 module AutMake 
@@ -191,4 +192,12 @@ struct
 			}
 		else 
 			a		 
+
+	let est_usuel (a : aut) : bool = 
+		LS.S.for_all 
+			(fun l -> 
+				match l with
+				| B ens -> LS.Sub.S.cardinal ens = 1
+				| _ -> false
+			) a.alph
 end
