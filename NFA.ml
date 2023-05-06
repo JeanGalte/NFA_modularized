@@ -1,14 +1,66 @@
 open Set
 
-(* Types des modules et foncteurs utilisés. Les types de foncteurs n'étaient en réalité pas obligatoire, mais ils ont permis d'enforcer certaines propriété via les types *)
+(* /!\ Ce n'est pas une implémentation d'automate fini non déterministe classique, voir le README pour plus d'informations *)
 
 module type MonoidalType =
 sig
-	type t
+	type t 
 	val compare : t -> t -> int
 	val ( + ) : t -> t -> t
 	val e : t
 end
+
+module type Monset =
+sig
+	include MonoidalType
+	module S : Set.S with type elt = t
+end 
+
+module type MonSetMakeT = functor (MT : MonoidalType) -> Monset 
+
+module MonsetMake : MonSetMakeT =
+functor (MT : MonoidalType) ->
+struct
+	include MT
+	module S = Set.Make(MT) 
+end
+
+module type Lang =
+sig
+	module Sub : Monset
+	type t =
+		| B of Sub.S.t
+		| Star of Sub.t
+		| Union of t * t
+		| Prod of t * t
+	val compare : t -> t -> int
+end
+
+module LangMake (M : Monset) =
+struct
+	module Sub = M
+	type t =
+		| B of Sub.S.t
+		| Star of Sub.t
+		| Union of t * t
+		| Prod of t * t
+	let compare = compare
+end
+
+module type SetLang = 
+sig
+	include Lang
+	module S : Set.S with type elt = t
+end
+
+module type SetLangMakeT = functor (L : Lang) -> SetLang 
+
+module SetLangMake : SetLangMakeT  =
+functor (L : Lang) ->
+struct
+	include L
+	module S = Set.Make(L) 
+end 
 
 module type EtatalType =
 sig
@@ -16,26 +68,21 @@ sig
 	val compare : t -> t -> int	
 	val d : t
 	val f : t
-	val est_debut : t -> bool
-	val est_fin : t -> bool
 end
 
-module type MonSet =
+module type SetEtat = 
 sig
-	type x
-	include Set.S with type elt = x
-	val ( + ) : x -> x -> x
-	val e : x
+	include EtatalType
+	module S : Set.S with type elt = t
 end
 
-module type EtSet =
-sig
-	type x
-	include Set.S with type elt = x
-	val d : x
-	val f : x
-	val est_debut : x -> bool
-	val est_fin : x -> bool
+module type SetEtatMakeT = functor (E : EtatalType) -> SetEtat
+
+module SetEtatMake : SetEtatMakeT =
+functor (E : EtatalType) ->
+struct
+	include E
+	module S = Set.Make(E)
 end
 
 module type Aut = 
@@ -59,89 +106,45 @@ sig
 	val is_auto : auta -> autq -> autq -> autq -> autt -> bool  
 	val is_auto_from_aut : aut -> bool
 	val is_auto_from_lists : a list -> q list -> q list -> q list -> (q * a * q) list -> bool  
-	val debuts_fins_uniques : aut -> aut 	
-	val est_chemin :  aut -> a list -> q -> q  -> bool
-	val accepte : aut -> a list -> bool
-end
-
-
-module type MonoidalTypeMake = functor (T : OrderedType) -> MonoidalType with type t = T.t
-
-module type EtatalTypeMake = functor (T : OrderedType) -> EtatalType with type t = T.t
-
-module type MonSetMake = functor (MT : MonoidalType) -> 
-	MonSet with type x = MT.t 
-
-module type EtatSetMake = functor (ET : EtatalType) -> 
-	EtSet with type x = ET.t 
-
-module type AutMake = functor
-	(A : MonSet)
-	(Q : EtSet)
-	(D : EtSet with type x = Q.x)
-	(F : EtSet with type x = Q.x)
-	(T : Set.S with type elt = Q.x * A.elt * Q.x) -> 
-	Aut with type a = A.elt and type q = Q.x  and type auta = A.t and type autq = Q.t and type autt = T.t
-
-module MonSetMake (MT : MonoidalType) =
-struct
-	type x = MT.t
-	include Set.Make(MT)
-	let e = MT.e
-	let ( + ) = MT.( + )
-end 
-
-module EtatSetMake (ET : EtatalType) =
-struct
-	type x = ET.t
-	include Set.Make(ET)
-	let d = ET.d
-	let f = ET.f
-	let est_debut = ET.est_debut
-	let est_fin = ET.est_fin
+	val debuts_fins_uniques : aut -> aut 
 end
 
 module AutMake 
-	(A : MonSet)
-	(Q : EtSet)
-	(D : EtSet with type x = Q.x)
-	(F : EtSet with type x = Q.x)
-	(T : Set.S with type elt = Q.x * A.elt * Q.x) =
+	(LS : SetLang)
+	(Q : SetEtat)
+	(T : Set.S with type elt = Q.S.elt * LS.S.elt * Q.S.elt) =
 struct
-	type a = A.elt
-	type q = Q.x
+	type a = LS.S.elt
+	type q = Q.S.elt
 
-	type auta = A.t
-	type autq = Q.t
+	type auta = LS.S.t
+	type autq = Q.S.t
 	type autt = T.t
 
 	type aut = { 
-	alph : auta ;
-	etats : autq ;
-	debuts : autq ;
-	fins : autq ;
-	trans : autt ;
+		alph : auta ;
+		etats : autq ;
+		debuts : autq ;
+		fins : autq ;
+		trans : autt ;
 	}
 
-	let from_lists (l : a list) (et : q list) (d : q list) (f : q list) (t : (q * a * q) list ) : aut = 
-		{
-		alph = A.of_list l;
-		etats = Q.of_list et;
-		debuts = Q.of_list d;
-		fins = Q.of_list f;
-		trans = T.of_list t;
-		}
+	let from_lists (la : a list) (lq : q list) (ld : q list) (lf : q list) (lt : (q * a * q) list) : aut =
+		{alph = LS.S.of_list la;
+		etats = Q.S.of_list lq;
+		debuts = Q.S.of_list ld;
+		fins = Q.S.of_list lf;
+		trans = T.of_list lt;}
 
-	let is_auto (m : auta) (et : autq) (d : autq) (f : autq) (t : autt) : bool =
-		m <> A.empty &&
-		et <> Q.empty &&
-		d <> Q.empty &&
-		f <> Q.empty &&
-		Q.for_all (fun elt -> Q.mem elt et) d &&
-		Q.for_all (fun elt -> Q.mem elt et) f &&
-		T.for_all 
-			(fun (j,o,h) -> Q.mem j et && Q.mem h et && A.mem o m)
-			t 
+	let is_auto (rs : auta) (qs : autq) (ds : autq) (fs : autq) (ts : autt) : bool =
+		rs <> LS.S.empty &&
+		qs <> Q.S.empty &&
+		ds <> Q.S.empty &&
+		fs <> Q.S.empty && 
+		ts <> T.empty &&
+		Q.S.for_all (fun e -> Q.S.mem e qs) ds && 
+		Q.S.for_all (fun e -> Q.S.mem e qs) fs &&
+		T.for_all (fun (h,j,k) -> Q.S.mem h qs && Q.S.mem k qs && LS.S.mem j rs ) ts
 
 	let is_auto_from_aut (a : aut) : bool =
 		is_auto a.alph a.etats a.debuts a.fins a.trans
@@ -151,27 +154,28 @@ struct
 
 	let debuts_fins_uniques (a : aut) : aut =
 		if is_auto_from_aut a then
-			let nalph = A.union a.alph (A.singleton A.e) in
-			let ndebuts = Q.singleton Q.d in 
-			let nfins = Q.singleton Q.f in 
-			let netats = Q.union (Q.union ndebuts nfins) a.etats in
+			let eps = LS.B (LS.Sub.S.singleton LS.Sub.e) in
+			let nalph = LS.S.union a.alph (LS.S.singleton eps) in
+			let ndebuts = Q.S.singleton Q.d in 
+			let nfins = Q.S.singleton Q.f in 
+			let netats = Q.S.union (Q.S.union ndebuts nfins) a.etats in
 			let ntrans = 
 			T.union
 				(
 					T.union 
 				 			( 
 				 				T.map 
-				 					(fun elt (j,_,_) -> (Q.d,A.e,j))
+				 					(fun (j,_,_) -> (Q.d,  eps ,j))
 				 					(T.filter 
-				 						(fun (j,_,_) -> Q.est_debut j)
+				 						(fun (j,_,_) -> Q.S.mem j a.debuts)
 				 					a.trans
 				 					)
 				 			) 
 				 			( 
 				 				T.map 
-				 					(fun (_,_,h) -> (h, A.e, Q.f))
+				 					(fun (_,_,h) -> (h, eps , Q.f))
 				 					(T.filter 
-				 						(fun (_,_,h) -> Q.est_fin h)
+				 						(fun (_,_,h) -> Q.S.mem h a.fins)
 				 						a.trans
 				 					)
 				 			)
@@ -187,27 +191,4 @@ struct
 			}
 		else 
 			a		 
-
-		let rec est_chemin (a : aut) (l : a list)  (q1 : q) (q2 : q) : bool =
-			match l with
-			| x :: xs -> 
-				T.fold 	
-					(fun (_,_,h) -> est_chemin a xs h q2  || b
-					)
-					(T.filter 		
-						(fun (j,o,h) -> j = q1 && o = x
-					 	)
-					 	a.trans)
-					false
-			| [] -> T.mem (q1, A.e, q2) a.trans
-
-		let rec accepte (a : aut) (l : a list) : bool =
-			if a.debuts = Q.empty then 
-				false 
-			else 
-				let elem = Q.choose a.debuts in
-					if Q.exists (est_chemin a l elem) a.fins then 
-						true
-					else 
-						accepte {alph = a.alph; etats = a.etats; debuts = Q.filter (fun elt -> elt <> elem) a.debuts ; fins = a.fins; trans = a.trans} l
 end
