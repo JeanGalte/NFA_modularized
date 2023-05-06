@@ -103,7 +103,7 @@ sig
 	val is_auto_from_aut : aut -> bool
 	val is_auto_from_lists : a list -> q list -> q list -> q list -> (q * a * q) list -> bool  
 	val debuts_fins_uniques : aut -> aut 	
-	(* Vérifie si un automate accepte un langage *)
+	val est_usuel : aut -> bool
 end
 
 module AutMake 
