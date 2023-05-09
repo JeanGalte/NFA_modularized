@@ -24,6 +24,10 @@ Le programme implémente :
 -Algorithme pour trouver le langage accepté par un automate ✅  
 -Générateur d'automate minimal à partir d'un langage donné ❌  
 -Parser/Wrapper pour générer plus facilement des automates ❌   
+  
+Reste à faire :  
+-Clean le code 
+-Rendre toutes les fonctions utilisées récursives terminales  
 
 
 
