@@ -18,12 +18,12 @@ On observe que la transition 1-1 est étiquetée par (xy)\*, qui n'est pas une l
 Pour cette raison, on décrira toujours les transitions d'un état à un autre par un UNIQUE langage, si la transition est décrite par plusieurs mots par exemple une union de ces mots sera suffisante.  
 
 Le programme implémente :  
--Automate fini (non) déterministe ✅
--Automate fini (non) déterministe dont les transitions sont décrites par des langages ✅
--Algorithme d'élimination d'un état ✅
--Algorithme pour trouver le langage accepté par un automate ✅
--Générateur d'automate minimal à partir d'un langage donné ❌
--Parser/Wrapper pour générer plus facilement des automates ❌ 
+-Automate fini (non) déterministe ✅  
+-Automate fini (non) déterministe dont les transitions sont décrites par des langages ✅  
+-Algorithme d'élimination d'un état ✅  
+-Algorithme pour trouver le langage accepté par un automate ✅  
+-Générateur d'automate minimal à partir d'un langage donné ❌  
+-Parser/Wrapper pour générer plus facilement des automates ❌   
 
 
 
