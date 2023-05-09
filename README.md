@@ -26,7 +26,7 @@ Le programme implémente :
 -Parser/Wrapper pour générer plus facilement des automates ❌   
   
 Reste à faire :  
--Clean le code 
+-Clean le code  
 -Rendre toutes les fonctions utilisées récursives terminales  
 
 
