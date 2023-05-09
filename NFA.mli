@@ -1,4 +1,5 @@
 open Set
+open Cartesian
 
 (* /!\ Ce n'est pas une implémentation d'automate fini non déterministe classique, voir le README pour plus d'informations *)
 
@@ -16,6 +17,7 @@ sig
 (* Usuellement ^ *)
 	val ( + ) : t -> t -> t
 (* Théoriquement epsilon, on prendra usuellement "e" puisqu'on est en ascii *)
+(* Il faut garder à l'esprit que e DOIT être le neutre par l'addition sur le type *)
 	val e : t
 end
 
@@ -35,9 +37,11 @@ sig
 (* Attention, Sub.t c'est Monset.t c'est un mot, Sub.S.t c'est un ensemble de mots Set.S.t *)
 	type t =
 		| B of Sub.S.t
-		| Star of Sub.t
+		| Star of t
 		| Union of t * t
 		| Prod of t * t
+		| Empty
+		(* /!\ Empty n'est pas le langage ne contenant que le mot vide, c'est une sorte de None pour le type t. En particulier Empty est absorbant pour le produit *)
 	val compare : t -> t -> int
 end
 
@@ -104,6 +108,9 @@ sig
 	val is_auto_from_lists : a list -> q list -> q list -> q list -> (q * a * q) list -> bool  
 	val debuts_fins_uniques : aut -> aut 	
 	val est_usuel : aut -> bool
+	val lang_trans : aut -> q -> q -> a 
+	val elimine_etat : aut -> q -> aut
+	val langage_accepte : aut -> a
 end
 
 module AutMake 
