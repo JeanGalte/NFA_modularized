@@ -1,5 +1,4 @@
 open Set
-open Cartesian
 
 (* /!\ Ce n'est pas une implémentation d'automate fini non déterministe classique, voir le README pour plus d'informations *)
 
