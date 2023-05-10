@@ -222,48 +222,57 @@ struct
 		let e_dep = Q.S.filter (fun elt -> T.exists (fun (h,_,_) -> h = e) a.trans) a.etats in
 		let e_fin = Q.S.filter (fun elt -> T.exists (fun (_,_,j) -> j = e) a.trans) a.etats in 
 		(* Produit cartésien du pauvre. La complexité est mauvaise, mais de toute manière dans l'idéal il faudrait faire un foncteur produit cartésien en entier et l'exploiter ici*)
-		let rec compact (l : 'a list list) : 'a list = 
-			match l with
-			| [] -> []
-			| x :: xs -> x @ compact xs
+		let compact (l : 'a list list) : 'a list =
+			let rec aux  (l : 'a list list) (acc : 'a list) : 'a list =
+				match l with
+				| [] -> acc
+				| x :: xs -> aux xs (x @ acc)
+			in aux l [] 
 		in
-		let rec map_all (l : 'b list) (el : 'c)  : ('c * 'b) list =
-			match l with
-			| [] -> []
-			| y :: ys -> (el, y) :: map_all ys el 
+		let map_all (l : 'b list) (el : 'c)  : ('c * 'b) list =
+			let rec aux (l : 'b list) (acc : ('c * 'b) list) : ('c * 'b) list = 
+				match l with
+				| [] -> []
+				| y :: ys -> aux ys ((el, y) :: acc) 
+			in aux l [] 
 		in 
-		let rec make_cpl (l1 : 'd list) (l2 : 'e list) : ('d * 'e) list list =
-			match l1 with
-			| [] -> []
-			| x :: xs -> (map_all l2 x) :: (make_cpl xs l2) 
+		let make_cpl (l1 : 'd list) (l2 : 'e list) : ('d * 'e) list list =
+			let rec aux (l1 : 'd list) (l2 : 'e list) (acc : ('d * 'e) list list) : ('d * 'e) list list = 
+				match l1 with
+				| [] -> acc
+				| x :: xs -> aux xs l2 ((map_all l2 x) :: acc)
+			in aux l1 l2 []
 		in
 		let cpls = compact (make_cpl (Q.S.elements e_fin) (Q.S.elements e_dep))
 		in
-		let rec ntrans_list (cpl : (Q.S.elt * Q.S.elt) list) : (T.elt list) = 
-			match cpl with
-			| [] -> []
-			| (e1, e2) :: xs -> 
-				(
-					e1, 
-					LS.Union
-						( 
-							(lang_trans a e1 e2), 
-							(LS.Prod
-								(
-									(lang_trans a e1 e),
-									(LS.Prod 
-										(
-										(LS.Star (lang_trans a e e)), 
-										lang_trans a e e2
+		let ntrans_list (cpl : (Q.S.elt * Q.S.elt) list) : (T.elt list) =
+			let rec aux (cpl : (Q.S.elt * Q.S.elt) list) (acc : (T.elt list)) : (T.elt list) =  
+				match cpl with
+				| [] -> []
+				| (e1, e2) :: xs ->
+					aux xs
+					((
+						e1, 
+						LS.Union
+							( 
+								(lang_trans a e1 e2), 
+								(LS.Prod
+									(
+										(lang_trans a e1 e),
+										(LS.Prod 
+											(
+											(LS.Star (lang_trans a e e)), 
+											lang_trans a e e2
+											)
 										)
 									)
 								)
 							)
-						)
-					,
-					e2
-				)  
-				:: (ntrans_list xs)
+						,
+						e2
+					)  
+					:: acc)
+			in aux cpl []
 		in 
 		let n_trans =
 			T.union
